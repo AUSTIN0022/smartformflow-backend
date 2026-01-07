@@ -149,7 +149,7 @@ model FormField {
   options       Json?
   validation    Json?
 
-  form              Form               @relation(fields: [formId], references: [id], onDelete: Cascade)
+  form              Form?               @relation(fields: [formId], references: [id], onDelete: Cascade)
   step              FormStep?          @relation(fields: [stepId], references: [id], onDelete: SetNull)
   submissionAnswers SubmissionAnswer[]
 
