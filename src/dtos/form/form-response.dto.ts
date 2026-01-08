@@ -8,5 +8,5 @@ export interface FormResponseDTO {
     settings?: any;
     publishedAt?: Date | null;
     steps?: FormStepDTO[];
-    fields: FormFieldDTO[];
+    fields?: FormFieldDTO[];
 }

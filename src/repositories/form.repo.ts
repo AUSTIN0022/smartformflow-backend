@@ -15,7 +15,8 @@ export interface IFormRepository {
     findById(id: string): Promise<FormWithDetails | null>;
     findByEventId(eventId: string): Promise<FormWithDetails | null>;
     findBySlug(slug: string): Promise<FormWithDetails | null>;
-    deleteForm(id: string): Promise<FormWithDetails>; 
+    deleteForm(id: string): Promise<void>; 
+    publishForm(id: string): Promise<FormWithDetails>;
 }
 
 
@@ -136,15 +137,21 @@ export class FormRepositories implements IFormRepository {
 
     return (event?.form as FormWithDetails) || null;
   }
+  async publishForm(id: string): Promise<FormWithDetails> {
 
-  async deleteForm(id: string): Promise<FormWithDetails> {
-    const form = await prisma.form.update({ 
+    const form = await prisma.form.update({
         where: { id },
-        data: {
-            isDeleted: true
-        } 
+        data: { publishedAt:  new Date() },
+        include: this.includeDetails,
     });
 
     return form as FormWithDetails;
+  }
+
+  async deleteForm(id: string): Promise<void> {
+     await prisma.form.update({ 
+        where: { id },
+        data: { isDeleted: true },
+    });
   }
 }
