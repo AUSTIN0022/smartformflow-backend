@@ -5,7 +5,6 @@ import { IEventRepository } from "../repositories/event.repo";
 import { IFormRepository } from "../repositories/form.repo";
 import { FormInput } from "../validators/form.schema";
 
-
 export class FormService {
 
     constructor(
@@ -111,7 +110,6 @@ export class FormService {
         const publishedForm = await this.formRepo.publishForm(formId);
         return toFormResponseDTO(publishedForm);
     }
-
 
     async deleteForm(userId:string, formId: string): Promise<void> {
         const form = await this.formRepo.findById(formId);
