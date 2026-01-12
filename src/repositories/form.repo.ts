@@ -52,13 +52,28 @@ export class FormRepositories implements IFormRepository {
         eventId,
         isMultiStep: data.isMultiStep ?? false,
         settings: data.settings ?? {},
+
         ...(data.isMultiStep && data.steps && {
           steps: {
             create: data.steps.map((step) => ({
               stepNumber: step.stepNumber,
               title: step.title,
               description: step.description ?? null,
-              fields: { create: this.mapFieldData(step.fields) },
+              fields: {
+                create: step.fields.map((field) => ({
+                    key: field.key,
+                    type: field.type,
+                    label: field.label,
+                    required: field.required ?? false,
+                    order: field.order,
+                    validation: field.validation ?? {},
+                    options: field.options ?? {},
+
+                    form: {
+                        connect: { eventId }
+                    }
+                })),
+               },
             })),
           },
         }),

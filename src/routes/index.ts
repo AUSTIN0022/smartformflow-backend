@@ -7,6 +7,6 @@ const router = Router();
 
 router.use("/auth", authRoutes);
 router.use("/events", eventRoutes);
-router.use("form", formRouter);
+router.use("/form", formRouter);
 
 export default router;
