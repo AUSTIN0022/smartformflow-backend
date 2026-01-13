@@ -56,6 +56,10 @@ export class FormService {
             throw new BadRequestError("Published form cannot be modified");
         }
 
+        if(form?.isMultiStep && !data.isMultiStep) {
+            throw new BadRequestError("Cannot convert multi-step form to single-step");
+        }
+
 
         const updatedForm = await this.formRepo.upsertForm(eventId, data);
 
@@ -103,10 +107,14 @@ export class FormService {
             throw new UnauthorizedError("Not allowed");
         }
 
+        if ( event.status !== "ACTIVE" ) {
+            throw new UnauthorizedError("Can't publish a form whose Event is not Active");
+        }
+
         if (!form.steps.length && !form.fields?.length) {
             throw new BadRequestError("Cannot publish empty form");
         }
-
+        
         const publishedForm = await this.formRepo.publishForm(formId);
         return toFormResponseDTO(publishedForm);
     }

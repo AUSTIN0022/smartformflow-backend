@@ -87,44 +87,71 @@ export class FormRepositories implements IFormRepository {
   }
 
   async upsertForm(eventId: string, data: FormInput): Promise<FormWithDetails> {
-    return await prisma.$transaction(async (tx) => {
-      const existingForm = await tx.form.findUnique({ where: { eventId } });
-
-      if (existingForm) {
-        // Clean up old structure to prevent duplicates or orphaned fields
-        await tx.formField.deleteMany({ where: { formId: existingForm.id } });
-        await tx.formStep.deleteMany({ where: { formId: existingForm.id } });
-      }
-
-      // Preparation of nested data for both create and update
-      const nestedData = {
-        isMultiStep: data.isMultiStep ?? false,
+  return prisma.$transaction(async (tx) => {
+    const form = await tx.form.upsert({
+      where: { eventId },
+      update: {
+        isMultiStep: data.isMultiStep,
         settings: data.settings ?? {},
-        ...(data.isMultiStep && data.steps && {
-          steps: {
-            create: data.steps.map((step) => ({
-              stepNumber: step.stepNumber,
-              title: step.title,
-              description: step.description ?? null,
-              fields: { create: this.mapFieldData(step.fields) },
-            })),
-          },
-        }),
-        ...(!data.isMultiStep && data.fields && {
-          fields: { create: this.mapFieldData(data.fields) },
-        }),
-      };
-
-      const form = await tx.form.upsert({
-        where: { eventId },
-        update: nestedData,
-        create: { eventId, ...nestedData },
-        include: this.includeDetails,
-      });
-
-      return form as FormWithDetails;
+      },
+      create: {
+        eventId,
+        isMultiStep: data.isMultiStep,
+        settings: data.settings ?? {},
+      },
     });
-  }
+
+    // clean slate
+    await tx.formField.deleteMany({ where: { formId: form.id } });
+    await tx.formStep.deleteMany({ where: { formId: form.id } });
+
+    if (data.isMultiStep) {
+      for (const step of data.steps!) {
+        const createdStep = await tx.formStep.create({
+          data: {
+            formId: form.id,
+            stepNumber: step.stepNumber,
+            title: step.title,
+            description: step.description ?? null,
+          },
+        });
+
+        await tx.formField.createMany({
+          data: step.fields.map((field) => ({
+            formId: form.id,
+            stepId: createdStep.id,
+            key: field.key,
+            type: field.type,
+            label: field.label,
+            required: field.required ?? false,
+            order: field.order,
+            options: field.options ?? {},
+            validation: field.validation ?? {},
+          })),
+        });
+      }
+    } else {
+      await tx.formField.createMany({
+        data: data.fields!.map((field) => ({
+          formId: form.id,
+          key: field.key,
+          type: field.type,
+          label: field.label,
+          required: field.required ?? false,
+          order: field.order,
+          options: field.options ?? {},
+          validation: field.validation ?? {},
+        })),
+      });
+    }
+
+    return tx.form.findUnique({
+      where: { id: form.id },
+      include: this.includeDetails,
+    }) as Promise<FormWithDetails>;
+  });
+}
+
 
   async findById(id: string): Promise<FormWithDetails | null> {
     const form = await prisma.form.findUnique({

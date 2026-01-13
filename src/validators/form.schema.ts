@@ -25,7 +25,14 @@ export const updateFormSchema = z.object({
         settings: z.record(z.string(), z.any()).optional(),
         steps: z.array(formStepSchema).optional(),
         fields: z.array(formFieldSchema).optional(),
-    }),
+    }).refine(
+        (data) =>
+            (data.isMultiStep && data.steps?.length) ||
+            (!data.isMultiStep && data.fields?.length),
+        {
+            message: "Multi-step forms require steps, Single-step forms require fields",
+        }
+    ),
 
 });
 
